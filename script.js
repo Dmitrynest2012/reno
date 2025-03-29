@@ -1,5 +1,6 @@
 let localStream;
 let peerConnection;
+let dataChannel;
 const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 const localVideo = document.getElementById("localVideo");
@@ -15,8 +16,18 @@ const copyOfferBtn = document.getElementById("copyOffer");
 const toggleMicBtn = document.getElementById("toggleMic");
 const toggleCamBtn = document.getElementById("toggleCam");
 
+const usernameInput = document.getElementById("usernameInput");
+const remoteUsernameDisplay = document.getElementById("remoteUsernameDisplay");
+
+let localUsername = usernameInput.value;
+let audioContext, analyser, microphone;
+
 startCallBtn.onclick = async () => {
     peerConnection = new RTCPeerConnection(config);
+    
+    dataChannel = peerConnection.createDataChannel("usernameChannel");
+    setupDataChannel();
+
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -31,10 +42,18 @@ startCallBtn.onclick = async () => {
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
+    
+    setupAudioAnalysis();
 };
 
 acceptCallBtn.onclick = async () => {
     peerConnection = new RTCPeerConnection(config);
+    
+    peerConnection.ondatachannel = event => {
+        dataChannel = event.channel;
+        setupDataChannel();
+    };
+
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -51,6 +70,8 @@ acceptCallBtn.onclick = async () => {
     await peerConnection.setRemoteDescription(offer);
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
+    
+    setupAudioAnalysis();
 };
 
 connectBtn.onclick = async () => {
@@ -58,18 +79,89 @@ connectBtn.onclick = async () => {
     await peerConnection.setRemoteDescription(answer);
 };
 
+function setupDataChannel() {
+    dataChannel.onopen = () => {
+        console.log("Data channel opened");
+        sendUsernameAndMicState();
+    };
+    dataChannel.onmessage = event => {
+        const data = JSON.parse(event.data);
+        console.log("Received data:", data);
+        remoteUsernameDisplay.textContent = data.username;
+        updateRemoteBorder(data.micState);
+    };
+}
+
+function sendUsernameAndMicState() {
+    const micEnabled = localStream && localStream.getAudioTracks()[0]?.enabled;
+    const micState = micEnabled ? (isAudioActive() ? "active" : "inactive") : "off";
+    updateLocalBorder(micState);
+    
+    if (dataChannel && dataChannel.readyState === "open") {
+        const data = { username: localUsername, micState };
+        dataChannel.send(JSON.stringify(data));
+        console.log("Sent data:", data);
+    }
+}
+
+function updateLocalBorder(micState) {
+    const localWrapper = localVideo.parentElement; // .video-wrapper
+    if (micState === "active") {
+        localWrapper.style.borderColor = "#00b4d8";
+    } else {
+        localWrapper.style.borderColor = "#333";
+    }
+}
+
+function updateRemoteBorder(micState) {
+    const remoteWrapper = remoteVideo.parentElement; // .video-wrapper
+    if (micState === "active") {
+        remoteWrapper.style.borderColor = "#00b4d8";
+    } else {
+        remoteWrapper.style.borderColor = "#333";
+    }
+}
+
+function setupAudioAnalysis() {
+    if (!localStream) return;
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    microphone = audioContext.createMediaStreamSource(localStream);
+    microphone.connect(analyser);
+    analyser.fftSize = 256;
+    console.log("Audio analysis setup complete");
+    checkAudioLevel();
+}
+
+function isAudioActive() {
+    if (!analyser) return false;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(dataArray);
+    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    console.log("Audio level:", average);
+    return average > 5;
+}
+
+function checkAudioLevel() {
+    if (localStream) {
+        sendUsernameAndMicState();
+    }
+    requestAnimationFrame(checkAudioLevel);
+}
+
 copyOfferBtn.onclick = () => {
     offerText.select();
     document.execCommand("copy");
 };
 
-// Управление микрофоном и камерой
 toggleMicBtn.onclick = () => {
     if (localStream) {
         let audioTrack = localStream.getAudioTracks()[0];
         if (audioTrack) {
             audioTrack.enabled = !audioTrack.enabled;
-            toggleMicBtn.textContent = audioTrack.enabled ? "🎤 Выключить микрофон" : "🎤 Включить микрофон";
+            toggleMicBtn.classList.toggle("off");
+            sendUsernameAndMicState();
+            console.log("Mic toggled:", audioTrack.enabled);
         }
     }
 };
@@ -79,7 +171,12 @@ toggleCamBtn.onclick = () => {
         let videoTrack = localStream.getVideoTracks()[0];
         if (videoTrack) {
             videoTrack.enabled = !videoTrack.enabled;
-            toggleCamBtn.textContent = videoTrack.enabled ? "📷 Выключить камеру" : "📷 Включить камеру";
+            toggleCamBtn.classList.toggle("off");
         }
     }
+};
+
+usernameInput.oninput = () => {
+    localUsername = usernameInput.value || "User1";
+    sendUsernameAndMicState();
 };

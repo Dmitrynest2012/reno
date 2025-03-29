@@ -7,12 +7,25 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <h2>Мини-Скайп (P2P WebRTC)</h2>
     
     <div class="video-container">
-        <video id="localVideo" autoplay playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="video-wrapper">
+            <video id="localVideo" autoplay playsinline></video>
+            <div class="username-overlay">
+                <input id="usernameInput" placeholder="Ваше имя" value="User1">
+            </div>
+            <div class="controls-overlay">
+                <button id="toggleMic" class="round-btn"><span>🎤</span></button>
+                <button id="toggleCam" class="round-btn"><span>📷</span></button>
+            </div>
+        </div>
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="username-overlay">
+                <div id="remoteUsernameDisplay">Remote User</div>
+            </div>
+        </div>
     </div>
 
     <div class="controls">
@@ -26,12 +39,6 @@
     <textarea id="answerText" placeholder="Вставьте ответный код"></textarea>
     <button id="connect">Подключиться</button>
 
-    <div class="media-controls">
-        <button id="toggleMic">🎤 Вкл/Выкл Микрофон</button>
-        <button id="toggleCam">📷 Вкл/Выкл Камера</button>
-    </div>
-
     <script src="script.js"></script>
-
 </body>
 </html>
