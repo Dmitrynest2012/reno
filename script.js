@@ -122,30 +122,30 @@ async function setupPeerConnection(isInitiator) {
             const desc = JSON.stringify(peerConnection.localDescription);
             offerText.value = desc;
             if (!isInitiator) answerText.value = desc;
+            console.log("SDP для передачи:", desc); // Для отладки
         }
     };
 
     if (isInitiator) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
+        console.log("Скопируйте этот offer и передайте другу:", JSON.stringify(peerConnection.localDescription));
     } else {
         const offer = JSON.parse(offerText.value);
         await peerConnection.setRemoteDescription(offer);
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
+        console.log("Скопируйте этот answer и передайте другу:", JSON.stringify(peerConnection.localDescription));
     }
     
     setupAudioAnalysis();
 }
 
 async function callFriend(friendId) {
-    videoSection.classList.remove("hidden"); // Показываем видео-секцию
+    videoSection.classList.remove("hidden");
     await setupPeerConnection(true);
-    if (dataChannel) {
-        dataChannel.onopen = () => {
-            dataChannel.send(JSON.stringify({ type: "call", from: myId, to: friendId }));
-        };
-    }
+    alert("Передайте offer из консоли другу с ID: " + friendId + ". Он должен вставить его в ручное подключение и отправить вам answer.");
+    // Пока нет сервера, автоматическая отправка невозможна
 }
 
 async function startMedia() {
@@ -224,7 +224,7 @@ function handleDataChannelMessage(event) {
     console.log("Received data:", data);
     if (data.type === "call" && data.to === myId) {
         if (confirm(`${friends[data.from] || "Неизвестный"} (${data.from.slice(0, 8)}...) зовет вас в звонок. Принять?`)) {
-            videoSection.classList.remove("hidden"); // Показываем видео-секцию при принятии звонка
+            videoSection.classList.remove("hidden");
             acceptCallBtn.click();
         }
     } else if (data.type === "friendRequest" && data.to === myId) {
