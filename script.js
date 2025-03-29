@@ -28,9 +28,22 @@ startCallBtn.onclick = async () => {
     dataChannel = peerConnection.createDataChannel("usernameChannel");
     setupDataChannel();
 
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    // Пробуем получить медиа с приоритетом на микрофон
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    } catch (e) {
+        console.log("Full media failed:", e);
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Got audio only");
+        } catch (e) {
+            console.log("Audio only failed:", e);
+            localStream = new MediaStream(); // Пустой стрим, если ничего не доступно
+            console.log("No media available, using empty stream");
+        }
+    }
 
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     localVideo.srcObject = localStream;
     peerConnection.ontrack = event => remoteVideo.srcObject = event.streams[0];
 
@@ -54,9 +67,22 @@ acceptCallBtn.onclick = async () => {
         setupDataChannel();
     };
 
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    // Та же логика для приема звонка
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    } catch (e) {
+        console.log("Full media failed:", e);
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Got audio only");
+        } catch (e) {
+            console.log("Audio only failed:", e);
+            localStream = new MediaStream();
+            console.log("No media available, using empty stream");
+        }
+    }
 
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     localVideo.srcObject = localStream;
     peerConnection.ontrack = event => remoteVideo.srcObject = event.streams[0];
 
@@ -93,7 +119,7 @@ function setupDataChannel() {
 }
 
 function sendUsernameAndMicState() {
-    const micEnabled = localStream && localStream.getAudioTracks()[0]?.enabled;
+    const micEnabled = localStream && localStream.getAudioTracks().length > 0 && localStream.getAudioTracks()[0].enabled;
     const micState = micEnabled ? (isAudioActive() ? "active" : "inactive") : "off";
     updateLocalBorder(micState);
     
@@ -105,7 +131,7 @@ function sendUsernameAndMicState() {
 }
 
 function updateLocalBorder(micState) {
-    const localWrapper = localVideo.parentElement; // .video-wrapper
+    const localWrapper = localVideo.parentElement;
     if (micState === "active") {
         localWrapper.style.borderColor = "#00b4d8";
     } else {
@@ -114,7 +140,7 @@ function updateLocalBorder(micState) {
 }
 
 function updateRemoteBorder(micState) {
-    const remoteWrapper = remoteVideo.parentElement; // .video-wrapper
+    const remoteWrapper = remoteVideo.parentElement;
     if (micState === "active") {
         remoteWrapper.style.borderColor = "#00b4d8";
     } else {
@@ -123,7 +149,10 @@ function updateRemoteBorder(micState) {
 }
 
 function setupAudioAnalysis() {
-    if (!localStream) return;
+    if (!localStream || localStream.getAudioTracks().length === 0) {
+        console.log("No audio track available for analysis");
+        return;
+    }
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     microphone = audioContext.createMediaStreamSource(localStream);
@@ -143,7 +172,7 @@ function isAudioActive() {
 }
 
 function checkAudioLevel() {
-    if (localStream) {
+    if (localStream && localStream.getAudioTracks().length > 0) {
         sendUsernameAndMicState();
     }
     requestAnimationFrame(checkAudioLevel);
@@ -155,24 +184,25 @@ copyOfferBtn.onclick = () => {
 };
 
 toggleMicBtn.onclick = () => {
-    if (localStream) {
+    if (localStream && localStream.getAudioTracks().length > 0) {
         let audioTrack = localStream.getAudioTracks()[0];
-        if (audioTrack) {
-            audioTrack.enabled = !audioTrack.enabled;
-            toggleMicBtn.classList.toggle("off");
-            sendUsernameAndMicState();
-            console.log("Mic toggled:", audioTrack.enabled);
-        }
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleMicBtn.classList.toggle("off");
+        sendUsernameAndMicState();
+        console.log("Mic toggled:", audioTrack.enabled);
+    } else {
+        console.log("No audio track to toggle");
     }
 };
 
 toggleCamBtn.onclick = () => {
-    if (localStream) {
+    if (localStream && localStream.getVideoTracks().length > 0) {
         let videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.enabled = !videoTrack.enabled;
-            toggleCamBtn.classList.toggle("off");
-        }
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleCamBtn.classList.toggle("off");
+        console.log("Cam toggled:", videoTrack.enabled);
+    } else {
+        console.log("No video track to toggle");
     }
 };
 
