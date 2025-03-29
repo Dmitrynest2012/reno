@@ -4,110 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мини-Скайп</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        video {
-            width: 45%;
-            border: 2px solid #333;
-            border-radius: 10px;
-            margin: 10px;
-        }
-        textarea {
-            width: 80%;
-            height: 60px;
-        }
-        button {
-            padding: 10px;
-            font-size: 16px;
-            margin: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <h2>Мини-Скайп (P2P WebRTC)</h2>
     
-    <video id="localVideo" autoplay playsinline></video>
-    <video id="remoteVideo" autoplay playsinline></video>
+    <div class="video-container">
+        <video id="localVideo" autoplay playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+    </div>
 
-    <br>
-
-    <button id="startCall">Создать звонок</button>
-    <button id="acceptCall">Принять звонок</button>
-
-    <br>
+    <div class="controls">
+        <button id="startCall">Создать звонок</button>
+        <button id="acceptCall">Принять звонок</button>
+    </div>
 
     <textarea id="offerText" placeholder="Код подключения"></textarea>
-    <br>
     <button id="copyOffer">Скопировать код</button>
-    
-    <br>
 
     <textarea id="answerText" placeholder="Вставьте ответный код"></textarea>
-    <br>
     <button id="connect">Подключиться</button>
 
-    <script>
-        let localStream;
-        let peerConnection;
-        const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+    <div class="media-controls">
+        <button id="toggleMic">🎤 Вкл/Выкл Микрофон</button>
+        <button id="toggleCam">📷 Вкл/Выкл Камера</button>
+    </div>
 
-        const localVideo = document.getElementById("localVideo");
-        const remoteVideo = document.getElementById("remoteVideo");
-        const offerText = document.getElementById("offerText");
-        const answerText = document.getElementById("answerText");
-
-        document.getElementById("startCall").onclick = async () => {
-            peerConnection = new RTCPeerConnection(config);
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-            localVideo.srcObject = localStream;
-            peerConnection.ontrack = event => remoteVideo.srcObject = event.streams[0];
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    offerText.value = JSON.stringify(peerConnection.localDescription);
-                }
-            };
-
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-        };
-
-        document.getElementById("acceptCall").onclick = async () => {
-            peerConnection = new RTCPeerConnection(config);
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-            localVideo.srcObject = localStream;
-            peerConnection.ontrack = event => remoteVideo.srcObject = event.streams[0];
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    answerText.value = JSON.stringify(peerConnection.localDescription);
-                }
-            };
-
-            const offer = JSON.parse(offerText.value);
-            await peerConnection.setRemoteDescription(offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-        };
-
-        document.getElementById("connect").onclick = async () => {
-            const answer = JSON.parse(answerText.value);
-            await peerConnection.setRemoteDescription(answer);
-        };
-
-        document.getElementById("copyOffer").onclick = () => {
-            offerText.select();
-            document.execCommand("copy");
-        };
-    </script>
+    <script src="script.js"></script>
 
 </body>
 </html>
