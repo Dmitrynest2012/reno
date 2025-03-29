@@ -48,7 +48,10 @@ startCallBtn.onclick = async () => {
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            offerText.value = JSON.stringify(peerConnection.localDescription);
+            const jsonString = JSON.stringify(peerConnection.localDescription);
+            const compressed = pako.gzip(jsonString); // Сжатие с помощью pako
+            const base64 = btoa(String.fromCharCode.apply(null, compressed)); // Кодирование в Base64
+            offerText.value = base64;
         }
     };
 
@@ -86,11 +89,17 @@ acceptCallBtn.onclick = async () => {
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            answerText.value = JSON.stringify(peerConnection.localDescription);
+            const jsonString = JSON.stringify(peerConnection.localDescription);
+            const compressed = pako.gzip(jsonString); // Сжатие с помощью pako
+            const base64 = btoa(String.fromCharCode.apply(null, compressed)); // Кодирование в Base64
+            answerText.value = base64;
         }
     };
 
-    const offer = JSON.parse(offerText.value);
+    const base64Offer = offerText.value;
+    const compressedOffer = Uint8Array.from(atob(base64Offer), c => c.charCodeAt(0));
+    const jsonStringOffer = pako.ungzip(compressedOffer, { to: 'string' });
+    const offer = JSON.parse(jsonStringOffer);
     await peerConnection.setRemoteDescription(offer);
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
@@ -99,19 +108,20 @@ acceptCallBtn.onclick = async () => {
 };
 
 connectBtn.onclick = async () => {
-    const answer = JSON.parse(answerText.value);
+    const base64Answer = answerText.value;
+    const compressedAnswer = Uint8Array.from(atob(base64Answer), c => c.charCodeAt(0));
+    const jsonStringAnswer = pako.ungzip(compressedAnswer, { to: 'string' });
+    const answer = JSON.parse(jsonStringAnswer);
     await peerConnection.setRemoteDescription(answer);
 };
 
 async function updateMediaStream() {
     if (!peerConnection) return;
 
-    // Останавливаем существующие треки
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
     }
 
-    // Пробуем получить новые медиа
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         console.log("Updated to full media");
@@ -127,21 +137,18 @@ async function updateMediaStream() {
         }
     }
 
-    // Обновляем локальное видео
     localVideo.srcObject = localStream;
 
-    // Добавляем новые треки в соединение
     const senders = peerConnection.getSenders();
     localStream.getTracks().forEach(track => {
         const existingSender = senders.find(sender => sender.track && sender.track.kind === track.kind);
         if (existingSender) {
-            existingSender.replaceTrack(track); // Заменяем существующий трек
+            existingSender.replaceTrack(track);
         } else {
-            peerConnection.addTrack(track, localStream); // Добавляем новый трек
+            peerConnection.addTrack(track, localStream);
         }
     });
 
-    // Перезапускаем анализ звука
     setupAudioAnalysis();
 }
 
@@ -232,7 +239,7 @@ toggleMicBtn.onclick = () => {
         console.log("Mic toggled:", audioTrack.enabled);
     } else {
         console.log("No audio track, updating media...");
-        updateMediaStream(); // Пробуем добавить микрофон
+        updateMediaStream();
     }
 };
 
@@ -244,7 +251,7 @@ toggleCamBtn.onclick = () => {
         console.log("Cam toggled:", videoTrack.enabled);
     } else {
         console.log("No video track, updating media...");
-        updateMediaStream(); // Пробуем добавить камеру
+        updateMediaStream();
     }
 };
 
