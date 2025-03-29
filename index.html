@@ -9,49 +9,35 @@
 <body>
     <h2>Мини-Скайп (P2P WebRTC)</h2>
     
-    <div class="main-container">
-        <div class="friends-list">
-            <h3>Друзья</h3>
-            <div id="friendsContainer"></div>
-            <input id="myNameInput" placeholder="Ваше имя">
-            <div id="myIdDisplay"><strong>Ваш ID:</strong> <a href="#" id="myId"></a></div>
-            <input id="friendIdInput" placeholder="ID друга">
-            <button id="addFriendBtn">Добавить друга</button>
-        </div>
-        <div class="video-section hidden">
-            <div class="video-container">
-                <div class="video-wrapper">
-                    <video id="localVideo" autoplay playsinline></video>
-                    <div class="username-overlay">
-                        <div id="localUsernameDisplay"></div>
-                    </div>
-                    <div class="controls-overlay">
-                        <button id="toggleMic" class="round-btn"><span>🎤</span></button>
-                        <button id="toggleCam" class="round-btn"><span>📷</span></button>
-                    </div>
-                </div>
-                <div class="video-wrapper">
-                    <video id="remoteVideo" autoplay playsinline></video>
-                    <div class="username-overlay">
-                        <div id="remoteUsernameDisplay">Remote User</div>
-                    </div>
-                </div>
+    <div class="video-container">
+        <div class="video-wrapper">
+            <video id="localVideo" autoplay playsinline></video>
+            <div class="username-overlay">
+                <input id="usernameInput" placeholder="Ваше имя" value="User1">
             </div>
-            <div class="manual-connect">
-                <button id="toggleManualBtn">Ручное подключение</button>
-                <div id="manualContainer" class="collapsed">
-                    <div class="controls">
-                        <button id="startCall">Создать звонок</button>
-                        <button id="acceptCall">Принять звонок</button>
-                    </div>
-                    <textarea id="offerText" placeholder="Код подключения"></textarea>
-                    <button id="copyOffer">Скопировать код</button>
-                    <textarea id="answerText" placeholder="Вставьте ответный код"></textarea>
-                    <button id="connect">Подключиться</button>
-                </div>
+            <div class="controls-overlay">
+                <button id="toggleMic" class="round-btn"><span>🎤</span></button>
+                <button id="toggleCam" class="round-btn"><span>📷</span></button>
+            </div>
+        </div>
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="username-overlay">
+                <div id="remoteUsernameDisplay">Remote User</div>
             </div>
         </div>
     </div>
+
+    <div class="controls">
+        <button id="startCall">Создать звонок</button>
+        <button id="acceptCall">Принять звонок</button>
+    </div>
+
+    <textarea id="offerText" placeholder="Код подключения"></textarea>
+    <button id="copyOffer">Скопировать код</button>
+
+    <textarea id="answerText" placeholder="Вставьте ответный код"></textarea>
+    <button id="connect">Подключиться</button>
 
     <script src="script.js"></script>
 </body>
