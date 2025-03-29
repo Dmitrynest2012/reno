@@ -28,7 +28,6 @@ startCallBtn.onclick = async () => {
     dataChannel = peerConnection.createDataChannel("usernameChannel");
     setupDataChannel();
 
-    // Пробуем получить медиа с приоритетом на микрофон
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     } catch (e) {
@@ -38,7 +37,7 @@ startCallBtn.onclick = async () => {
             console.log("Got audio only");
         } catch (e) {
             console.log("Audio only failed:", e);
-            localStream = new MediaStream(); // Пустой стрим, если ничего не доступно
+            localStream = new MediaStream();
             console.log("No media available, using empty stream");
         }
     }
@@ -67,7 +66,6 @@ acceptCallBtn.onclick = async () => {
         setupDataChannel();
     };
 
-    // Та же логика для приема звонка
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     } catch (e) {
@@ -104,6 +102,48 @@ connectBtn.onclick = async () => {
     const answer = JSON.parse(answerText.value);
     await peerConnection.setRemoteDescription(answer);
 };
+
+async function updateMediaStream() {
+    if (!peerConnection) return;
+
+    // Останавливаем существующие треки
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+
+    // Пробуем получить новые медиа
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        console.log("Updated to full media");
+    } catch (e) {
+        console.log("Full media update failed:", e);
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Updated to audio only");
+        } catch (e) {
+            console.log("Audio update failed:", e);
+            localStream = new MediaStream();
+            console.log("Updated to empty stream");
+        }
+    }
+
+    // Обновляем локальное видео
+    localVideo.srcObject = localStream;
+
+    // Добавляем новые треки в соединение
+    const senders = peerConnection.getSenders();
+    localStream.getTracks().forEach(track => {
+        const existingSender = senders.find(sender => sender.track && sender.track.kind === track.kind);
+        if (existingSender) {
+            existingSender.replaceTrack(track); // Заменяем существующий трек
+        } else {
+            peerConnection.addTrack(track, localStream); // Добавляем новый трек
+        }
+    });
+
+    // Перезапускаем анализ звука
+    setupAudioAnalysis();
+}
 
 function setupDataChannel() {
     dataChannel.onopen = () => {
@@ -191,7 +231,8 @@ toggleMicBtn.onclick = () => {
         sendUsernameAndMicState();
         console.log("Mic toggled:", audioTrack.enabled);
     } else {
-        console.log("No audio track to toggle");
+        console.log("No audio track, updating media...");
+        updateMediaStream(); // Пробуем добавить микрофон
     }
 };
 
@@ -202,7 +243,8 @@ toggleCamBtn.onclick = () => {
         toggleCamBtn.classList.toggle("off");
         console.log("Cam toggled:", videoTrack.enabled);
     } else {
-        console.log("No video track to toggle");
+        console.log("No video track, updating media...");
+        updateMediaStream(); // Пробуем добавить камеру
     }
 };
 
