@@ -27,6 +27,7 @@ const myIdDisplay = document.getElementById("myId");
 
 const toggleManualBtn = document.getElementById("toggleManualBtn");
 const manualContainer = document.getElementById("manualContainer");
+const videoSection = document.querySelector(".video-section");
 
 let myId = localStorage.getItem("myId") || generateId();
 myIdDisplay.textContent = myId;
@@ -138,6 +139,7 @@ async function setupPeerConnection(isInitiator) {
 }
 
 async function callFriend(friendId) {
+    videoSection.classList.remove("hidden"); // Показываем видео-секцию
     await setupPeerConnection(true);
     if (dataChannel) {
         dataChannel.onopen = () => {
@@ -222,6 +224,7 @@ function handleDataChannelMessage(event) {
     console.log("Received data:", data);
     if (data.type === "call" && data.to === myId) {
         if (confirm(`${friends[data.from] || "Неизвестный"} (${data.from.slice(0, 8)}...) зовет вас в звонок. Принять?`)) {
+            videoSection.classList.remove("hidden"); // Показываем видео-секцию при принятии звонка
             acceptCallBtn.click();
         }
     } else if (data.type === "friendRequest" && data.to === myId) {

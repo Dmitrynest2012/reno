@@ -34,7 +34,7 @@ h2 {
 }
 
 #friendsContainer {
-    max-height: 350px; /* Уменьшил с 400px для баланса с видео */
+    max-height: 350px;
     overflow-y: auto;
     margin-bottom: 10px;
 }
@@ -95,6 +95,10 @@ h2 {
 .video-section {
     flex: 1;
     max-width: 800px;
+}
+
+.video-section.hidden {
+    display: none; /* Скрываем полностью */
 }
 
 .video-container {
@@ -233,9 +237,9 @@ button:active {
 }
 
 #manualContainer.expanded {
-    max-height: 250px; /* Уменьшил до компактного размера */
+    max-height: 250px;
     opacity: 1;
-    overflow-y: auto; /* Добавил прокрутку, если содержимое не помещается */
+    overflow-y: auto;
 }
 
 textarea {
